@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exactly — Art Piece</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black: #0a0a0a;
+            --white: #fafaf8;
+            --off-white: #f2f0eb;
+            --gray-light: #e8e6e1;
+            --gray-mid: #9a9690;
+            --gray-dark: #3a3835;
+            --accent: #c8a96e;
+            --serif: 'EB Garamond', Georgia, serif;
+            --sans: 'Inter', -apple-system, sans-serif;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--black);
+            color: var(--white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 48px;
+            /* start transparent */
+            background: transparent;
+            border-bottom: 1px solid transparent;
+            transition:
+                background 0.4s ease,
+                border-color 0.4s ease,
+                padding 0.4s ease,
+                backdrop-filter 0.4s ease;
+        }
+
+        /* glassmorphism state — applied via JS once user scrolls */
+        nav.glass {
+            background: rgba(10, 10, 10, 0.45);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            padding: 16px 48px;
+        }
+
+        .nav-logo {
+            font-family: var(--serif);
+            font-size: 18px;
+            letter-spacing: 0.04em;
+            color: var(--white);
+            opacity: 0.85;
+        }
+
+        .nav-tag {
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--gray-mid);
+        }
+
+        @media (max-width: 900px) {
+            nav       { padding: 20px 24px; }
+            nav.glass { padding: 14px 24px; }
+        }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 48px 60px;
+            position: relative;
+        }
+
+        /* animated gradient background that echoes the artwork's palette */
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 20% 50%, rgba(200, 80, 180, 0.12) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 30%, rgba(30, 160, 200, 0.10) 0%, transparent 55%),
+                        radial-gradient(ellipse at 55% 80%, rgba(100, 200, 60, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-inner {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 72px;
+            align-items: center;
+            max-width: 1200px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* ── ARTWORK ── */
+        .artwork-frame {
+            position: relative;
+        }
+
+        .artwork-frame::before {
+            /* subtle glow that picks up the artwork's colours */
+            content: '';
+            position: absolute;
+            inset: -20px;
+            background: radial-gradient(ellipse at center,
+                rgba(200, 80, 180, 0.25) 0%,
+                rgba(30, 160, 200, 0.15) 40%,
+                transparent 70%);
+            filter: blur(24px);
+            z-index: 0;
+            border-radius: 4px;
+        }
+
+        .artwork-img {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            border-radius: 2px;
+            box-shadow:
+                0 4px 24px rgba(0,0,0,0.5),
+                0 1px 0 rgba(255,255,255,0.06) inset;
+            display: block;
+            cursor: none; /* hide default cursor over image */
+        }
+
+        /* ── MAGNIFIER ── */
+        .magnifier-lens {
+            position: fixed;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.55);
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,0.4),
+                0 8px 32px rgba(0,0,0,0.6),
+                inset 0 0 0 1px rgba(255,255,255,0.1);
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+            transform: translate(-50%, -50%);
+            /* frosted ring */
+            backdrop-filter: none;
+        }
+
+        /* crosshair lines inside the lens */
+        .magnifier-lens::before,
+        .magnifier-lens::after {
+            content: '';
+            position: absolute;
+            background: rgba(255,255,255,0.25);
+            pointer-events: none;
+            z-index: 2;
+        }
+        .magnifier-lens::before { width: 1px; height: 100%; left: 50%; top: 0; }
+        .magnifier-lens::after  { width: 100%; height: 1px; top: 50%; left: 0; }
+
+        /* ── INFO PANEL ── */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .info-eyebrow {
+            font-size: 10px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            font-family: var(--serif);
+            font-size: clamp(52px, 6vw, 80px);
+            font-style: italic;
+            font-weight: 400;
+            line-height: 1.0;
+            letter-spacing: -0.01em;
+            margin-bottom: 32px;
+            /* mirror the artwork's energy with a subtle gradient on the text */
+            background: linear-gradient(135deg, #ffffff 0%, #d4b8e0 50%, #a8d8ea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .info-divider {
+            width: 40px;
+            height: 1px;
+            background: var(--accent);
+            margin-bottom: 32px;
+            opacity: 0.6;
+        }
+
+        .info-description {
+            font-size: 14px;
+            line-height: 1.9;
+            color: #b0ada8;
+            margin-bottom: 40px;
+        }
+
+        .info-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border-top: 1px solid #1e1e1e;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 14px 0;
+            border-bottom: 1px solid #1e1e1e;
+        }
+
+        .meta-label {
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--gray-mid);
+        }
+
+        .meta-value {
+            font-family: var(--serif);
+            font-size: 15px;
+            color: var(--white);
+            text-align: right;
+        }
+
+        /* ── DETAIL SECTION ── */
+        .detail-section {
+            background: var(--off-white);
+            color: var(--black);
+            padding: 100px 48px;
+        }
+
+        .detail-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: start;
+        }
+
+        .detail-heading {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gray-mid);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .detail-heading::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--gray-light);
+            max-width: 60px;
+        }
+
+        .detail-body {
+            font-size: 15px;
+            line-height: 1.9;
+            color: var(--gray-dark);
+        }
+
+        .detail-body p + p { margin-top: 20px; }
+
+        .pattern-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border-top: 1px solid var(--gray-light);
+        }
+
+        .pattern-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--gray-light);
+            font-size: 13px;
+            color: var(--gray-dark);
+        }
+
+        .pattern-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            background: var(--black);
+            color: var(--gray-dark);
+            padding: 32px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #1a1a1a;
+            font-size: 11px;
+            letter-spacing: 0.06em;
+        }
+
+        /* ── LIGHTBOX ── */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0,0,0,0.96);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+
+        .lightbox.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .lightbox-img-wrap {
+            position: relative;
+            max-width: 95vw;
+            max-height: 92vh;
+            cursor: none; /* magnifier takes over */
+            transform: scale(0.94);
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .lightbox.open .lightbox-img-wrap {
+            transform: scale(1);
+        }
+
+        .lightbox-img {
+            display: block;
+            max-width: 95vw;
+            max-height: 92vh;
+            width: auto;
+            height: auto;
+            border-radius: 2px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .lightbox-close {
+            position: fixed;
+            top: 24px;
+            right: 32px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 50%;
+            color: var(--white);
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.2s ease;
+            z-index: 1001;
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255,255,255,0.18);
+            transform: rotate(90deg);
+        }
+
+        .lightbox-hint {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.3);
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        /* tell the hero image it's clickable */
+        .artwork-img { cursor: zoom-in !important; }
+
+        /* ── FADE-IN ANIMATION ── */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            /* nav padding handled in nav block above */
+
+            .hero { padding: 90px 24px 48px; }
+
+            .hero-inner {
+                grid-template-columns: 1fr;
+                gap: 48px;
+            }
+
+            .info-panel { order: -1; }
+
+            .detail-section { padding: 72px 24px; }
+            .detail-inner { grid-template-columns: 1fr; gap: 48px; }
+
+            footer { flex-direction: column; gap: 12px; text-align: center; }
+        }
+
+        @media (max-width: 600px) {
+            .info-title { font-size: 52px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <span class="nav-logo">Madison Hernandez</span>
+        <span class="nav-tag">Selected Work</span>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-inner">
+
+            <!-- Artwork -->
+            <div class="artwork-frame fade-up">
+                <img
+                    class="artwork-img"
+                    src="exactly.jpg"
+                    alt="Exactly — mixed-media artwork featuring bold block lettering spelling the word EXACTLY, each letter filled with a different hand-drawn pattern in vivid colours including orange, teal, green, magenta, and purple, set against a densely patterned background of swirls, chevrons, dots, and waves."
+                />
+            </div>
+
+            <!-- Info -->
+            <div class="info-panel fade-up" style="transition-delay: 0.15s;">
+                <p class="info-eyebrow">Original Artwork</p>
+                <h1 class="info-title">Exactly</h1>
+                <div class="info-divider"></div>
+                <p class="info-description">
+                    A riot of pattern and colour compressed into a single word.
+                    Each letter becomes its own world — checkered, chevron, swirled,
+                    striped — while the background refuses to stay quiet, pushing
+                    forward with equal intensity.
+                </p>
+                <dl class="info-meta">
+                    <div class="meta-row">
+                        <dt class="meta-label">Medium</dt>
+                        <dd class="meta-value">Marker &amp; pen on paper</dd>
+                    </div>
+                    <div class="meta-row">
+                        <dt class="meta-label">Style</dt>
+                        <dd class="meta-value">Doodle / Pattern art</dd>
+                    </div>
+                    <div class="meta-row">
+                        <dt class="meta-label">Palette</dt>
+                        <dd class="meta-value">Full spectrum</dd>
+                    </div>
+                    <div class="meta-row">
+                        <dt class="meta-label">Status</dt>
+                        <dd class="meta-value">Original — unique</dd>
+                    </div>
+                </dl>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- DETAIL SECTION -->
+    <section class="detail-section">
+        <div class="detail-inner">
+
+            <div class="fade-up">
+                <p class="detail-heading">About the work</p>
+                <div class="detail-body">
+                    <p>
+                        <em>Exactly</em> is a study in controlled chaos. The word itself
+                        is assertive — definitive — yet every surface within it is in
+                        constant visual motion. No two letters share the same pattern,
+                        and no area of the background repeats itself.
+                    </p>
+                    <p>
+                        The tension between the rigid letterforms and the organic,
+                        hand-drawn fills is what gives the piece its energy. It asks
+                        the viewer to look closely: the more you look, the more you find.
+                    </p>
+                    <p>
+                        Created entirely with markers and fine-line pens, the work
+                        demonstrates a meticulous hand and an instinct for colour
+                        relationships across a wide, saturated spectrum.
+                    </p>
+                </div>
+            </div>
+
+            <div class="fade-up" style="transition-delay: 0.1s;">
+                <p class="detail-heading">Patterns &amp; colours</p>
+                <ul class="pattern-list">
+                    <li class="pattern-item">
+                        <span class="pattern-swatch" style="background: #e8621a;" aria-hidden="true"></span>
+                        Concentric arcs — burnt orange &amp; green
+                    </li>
+                    <li class="pattern-item">
+                        <span class="pattern-swatch" style="background: #1a8fc1;" aria-hidden="true"></span>
+                        Diamond grid — teal &amp; cobalt
+                    </li>
+                    <li class="pattern-item">
+                        <span class="pattern-swatch" style="background: #7b4fc9;" aria-hidden="true"></span>
+                        Flowing waves — violet &amp; salmon
+                    </li>
+                    <li class="pattern-item">
+                        <span class="pattern-swatch" style="background: #5ab52e;" aria-hidden="true"></span>
+                        Chevron stripes — lime &amp; forest green
+                    </li>
+                    <li class="pattern-item">
+                        <span class="pattern-swatch" style="background: #d4420a;" aria-hidden="true"></span>
+                        Cross-hatch — rust &amp; terracotta
+                    </li>
+                    <li class="pattern-item">
+                        <span class="pattern-swatch" style="background: #c0399e;" aria-hidden="true"></span>
+                        Swirls &amp; dots — magenta &amp; purple
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <span>© Madison Hernandez</span>
+        <span style="letter-spacing: 0.12em; text-transform: uppercase; font-size: 10px;">Exactly</span>
+    </footer>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Artwork fullscreen view">
+        <button class="lightbox-close" id="lightboxClose" aria-label="Close fullscreen">&#x2715;</button>
+        <div class="lightbox-img-wrap" id="lightboxImgWrap">
+            <img class="lightbox-img" id="lightboxImg" src="exactly.jpg" alt="Exactly — fullscreen view" />
+        </div>
+        <p class="lightbox-hint" id="lightboxHint">Hover to magnify &nbsp;·&nbsp; Esc to close</p>
+    </div>
+
+    <!-- Magnifier lens element -->
+    <div class="magnifier-lens" id="magnifierLens" aria-hidden="true"></div>
+
+    <script>
+        // ── Glassmorphism nav on scroll ──
+        const nav = document.querySelector('nav');
+
+        function updateNav() {
+            if (window.scrollY > 60) {
+                nav.classList.add('glass');
+            } else {
+                nav.classList.remove('glass');
+            }
+        }
+
+        window.addEventListener('scroll', updateNav, { passive: true });
+        updateNav(); // set correct state on load
+
+        // ── Fade-up on scroll ──
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12 });
+
+        document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+        // ── Lightbox ──
+        const lightbox      = document.getElementById('lightbox');
+        const lightboxClose = document.getElementById('lightboxClose');
+        const lightboxImg   = document.getElementById('lightboxImg');
+        const lightboxWrap  = document.getElementById('lightboxImgWrap');
+        const lightboxHint  = document.getElementById('lightboxHint');
+        const artImg        = document.querySelector('.artwork-img');
+
+        function openLightbox() {
+            lightbox.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            // fade hint out after 3s
+            setTimeout(() => { lightboxHint.style.opacity = '0'; }, 3000);
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('open');
+            document.body.style.overflow = '';
+            lightboxHint.style.opacity = '1';
+            // hide magnifier if it was active inside lightbox
+            lens.style.display = 'none';
+        }
+
+        artImg.addEventListener('click', openLightbox);
+        lightboxClose.addEventListener('click', closeLightbox);
+
+        // click backdrop (not the image) to close
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) closeLightbox();
+        });
+
+        // Esc key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
+        });
+
+        // ── Magnifier (works on both hero image and lightbox image) ──
+        const lens    = document.getElementById('magnifierLens');
+        const ZOOM    = 2.8;
+        const LENS_SIZE = 180;
+
+        function attachMagnifier(target) {
+            target.addEventListener('mouseenter', () => {
+                lens.style.display = 'block';
+                target.style.cursor = 'none';
+            });
+
+            target.addEventListener('mousemove', (e) => {
+                const rect = target.getBoundingClientRect();
+                const relX = (e.clientX - rect.left)  / rect.width;
+                const relY = (e.clientY - rect.top)   / rect.height;
+                const zW   = rect.width  * ZOOM;
+                const zH   = rect.height * ZOOM;
+                const bgX  = relX * zW - LENS_SIZE / 2;
+                const bgY  = relY * zH - LENS_SIZE / 2;
+
+                lens.style.backgroundImage    = `url('${target.src}')`;
+                lens.style.backgroundSize     = `${zW}px ${zH}px`;
+                lens.style.backgroundPosition = `-${bgX}px -${bgY}px`;
+                lens.style.backgroundRepeat   = 'no-repeat';
+                lens.style.left = `${e.clientX}px`;
+                lens.style.top  = `${e.clientY}px`;
+            });
+
+            target.addEventListener('mouseleave', () => {
+                lens.style.display = 'none';
+            });
+        }
+
+        // attach to hero image and lightbox image
+        attachMagnifier(artImg);
+        attachMagnifier(lightboxImg);
+    </script>
+
+</body>
+</html>
